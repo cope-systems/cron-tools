@@ -1,0 +1,4 @@
+bottle
+bottle-swagger-2
+requests
+psycopg2

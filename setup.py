@@ -25,9 +25,13 @@ setup(
     license='apache',
     platforms='any',
     packages=["cron_tools"],
-    scripts=['cron-tools-wrapper.py', 'cron-tools-janitor.py', 'cron-tools-webapp.py'],
+    scripts=[],
     entry_points={
-        'console_scripts': []
+        'console_scripts': [
+            'cron_tools_agent=cron_tools.agent.app:main',
+            'cron_tools_aggregator=cron_tools.aggregator.app:main',
+            'cron_tools_wrapper=cron_tools.wrapper.main:main'
+        ]
     },
     install_requires=REQUIREMENTS,
     tests_require=REQUIREMENTS,

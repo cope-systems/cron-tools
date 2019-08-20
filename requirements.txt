@@ -1,3 +1,5 @@
+six
+signalfd
 bottle
 bottle-swagger-2
 requests

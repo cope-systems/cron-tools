@@ -22,4 +22,4 @@ front end of the aggregator to view results. The aggregator is powered by a Post
 
 ## Technical Details
 
- cron-tools is written entirely in Python 3.
+ cron-tools is written entirely in Python, and should support Python 2.7+ and Python 3.4+.

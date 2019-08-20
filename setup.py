@@ -22,7 +22,7 @@ setup(
     long_description=load("README.md"),
     author='Robert Cope',
     author_email='robert@copesystems.com',
-    license='Proprietary',
+    license='apache',
     platforms='any',
     packages=["cron_tools"],
     scripts=['cron-tools-wrapper.py', 'cron-tools-janitor.py', 'cron-tools-webapp.py'],
@@ -35,7 +35,7 @@ setup(
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
         'Operating System :: POSIX',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: Apache License',
         'Topic :: System',
         'Topic :: System :: Monitoring',
         'Topic :: Utilities',
@@ -45,7 +45,6 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-        'License :: Other/Proprietary License'
     ],
     include_package_data=True,
     keywords="cron"

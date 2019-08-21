@@ -3,4 +3,5 @@ signalfd
 bottle
 bottle-swagger-2
 requests
-psycopg2
+psycopg2-binary
+python-dateutil

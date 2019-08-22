@@ -4,8 +4,11 @@ from cron_tools.common.config import ConfigurationException
 
 
 class AgentConfiguration(object):
-    def __init__(self, sqlite_database_url):
+    DEFAULT_LISTEN_SOCKET_PATH = "/var/run/cron-tools/agent.sock"
+
+    def __init__(self, sqlite_database_url, listen_socket_path=DEFAULT_LISTEN_SOCKET_PATH):
         self.sqlite_database_url = sqlite_database_url
+        self.listen_socket_path = listen_socket_path
 
     @classmethod
     def load_and_validate_raw(cls, raw_config):
@@ -14,7 +17,8 @@ class AgentConfiguration(object):
         if "database_url" not in raw_config:
             raise ConfigurationException("No SQLite3 database_url specified in agent configuration!")
         return cls(
-            raw_config["database_url"]
+            raw_config["database_url"],
+            listen_socket_path=raw_config.get("listen_socket_path", cls.DEFAULT_LISTEN_SOCKET_PATH)
         )
 
     @classmethod

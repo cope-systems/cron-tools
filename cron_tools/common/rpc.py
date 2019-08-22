@@ -10,7 +10,7 @@ def serialize(o):
 
 
 def deserialize(i):
-    return json.loads(i, encoding='utf-8')
+    return json.loads(i.decode('utf-8'))
 
 
 class BaseRPCClientHandler(object):

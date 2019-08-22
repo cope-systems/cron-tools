@@ -3,6 +3,40 @@ Common Remote Procedure Call (rpc) library, both client and server, based loosel
 """
 import json
 import inspect
+import collections
+
+RPCErrorCode = collections.namedtuple('RPCErrorCode', ('value', 'message', 'description'))
+
+
+# Taken from the JSON-RPC 2.0 specification
+# https://www.jsonrpc.org/specification
+class RPCErrorCodes(object):
+    PARSE_ERROR = RPCErrorCode(
+        -32700, 'Parse Error',
+        "Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text."
+    )
+    INVALID_REQUEST = RPCErrorCode(
+        -32600, "Invalid Request",
+        "The JSON sent is not a valid Request object."
+    )
+    METHOD_NOT_FOUND = RPCErrorCode(
+        -32601, "Method Not Found",
+        "The method does not exist / is not available."
+    )
+    INVALID_PARAMETERS = RPCErrorCode(
+        -32602, "Invalid Parameters",
+        "Invalid method parameter(s)."
+    )
+    INTERNAL_ERROR = RPCErrorCode(
+        -32603, "Internal Error",
+        "Internal JSON-RPC Error"
+    )
+
+
+class RPCException(Exception):
+    def __init__(self, message, rpc_error_code=None):
+        super(RPCException, self).__init__(message)
+        self.rpc_error_code = rpc_error_code
 
 
 def serialize(o):
@@ -23,8 +57,27 @@ class BaseRPCClientHandler(object):
 
     @staticmethod
     def unmarshal_response(raw_response):
-        response = deserialize(raw_response)
-        return response['result']
+        try:
+            response = deserialize(raw_response)
+        except ValueError:
+            raise RPCException(
+                "Malformed response from server", None
+            )
+        if not isinstance(response, dict):
+            raise RPCException(
+                "Incorrectly structured JSON payload from server", None
+            )
+        if "result" in response:
+            return response['result']
+        elif "error" in response:
+            raise RPCException(
+                response["error"].get("message", "Unknown"),
+                response["error"].get("code")
+            )
+        else:
+            raise RPCException(
+                "Incorrectly structured JSON payload from server", None
+            )
 
 
 class RPCMethod(object):
@@ -35,10 +88,6 @@ class RPCMethod(object):
         return self.func(
             **raw_params
         )
-
-
-class RPCError(Exception):
-    pass
 
 
 class BaseRPCServerHandler(object):
@@ -53,11 +102,46 @@ class BaseRPCServerHandler(object):
         )
 
     def handle_request(self, raw_request):
-        parsed = deserialize(raw_request)
+        try:
+            parsed = deserialize(raw_request)
+        except ValueError as e:
+            return serialize({
+                "json-rpc": "2.0",
+                "error": {
+                    "message": repr(e),
+                    "code": RPCErrorCodes.PARSE_ERROR.value
+                }
+            })
+        if not (isinstance(parsed, dict) and "method" in parsed and "params" in parsed):
+            return serialize({
+                "json-rpc": "2.0",
+                "error": {
+                    "message": RPCErrorCodes.INVALID_REQUEST.message,
+                    "code": RPCErrorCodes.INVALID_REQUEST.value
+                }
+            })
         method = parsed['method']
         params = parsed['params']
-        result = self.registered_functions[method].handle(params)
-        response = {
-            "result": result
-        }
-        return serialize(response)
+        if method not in self.registered_functions:
+            return serialize({
+                "json-rpc": "2.0",
+                "error": {
+                    "message": RPCErrorCodes.METHOD_NOT_FOUND.message,
+                    "code": RPCErrorCodes.METHOD_NOT_FOUND.value
+                }
+            })
+        try:
+            result = self.registered_functions[method].handle(params)
+            response = {
+                "result": result
+            }
+        except Exception as e:
+            return serialize({
+                "json-rpc": "2.0",
+                "error": {
+                    "message": repr(e),
+                    "code": RPCErrorCodes.INTERNAL_ERROR.value
+                }
+            })
+        else:
+            return serialize(response)

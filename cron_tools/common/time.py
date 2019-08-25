@@ -40,3 +40,7 @@ def from_any_time_to_datetime(t):
         return t
     else:
         return parse(t)
+
+
+def local_now():
+    return datetime.datetime.now(tz=tzlocal())

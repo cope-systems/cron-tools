@@ -1,2 +1,4 @@
 -r requirements.txt
 assertpy
+tox
+coverage

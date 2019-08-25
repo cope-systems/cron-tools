@@ -1,5 +1,6 @@
 # Cron Tools
 [![Build Status](https://travis-ci.org/cope-systems/cron-tools.svg?branch=initial-buildout)](https://travis-ci.org/cope-systems/cron-tools)
+[![Coverage Status](https://coveralls.io/repos/github/cope-systems/cron-tools/badge.svg?branch=initial-buildout)](https://coveralls.io/github/cope-systems/cron-tools?branch=initial-buildout)
 ## What and Why
 cron-tools provides a system to overlay on top of the traditional "cron" daemon to provide additional tracking and
 control of periodically (and possibly single shot) run scripts and programs.

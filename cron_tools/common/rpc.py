@@ -4,6 +4,8 @@ Common Remote Procedure Call (rpc) library, both client and server, based loosel
 import json
 import inspect
 import collections
+import six
+import threading
 
 RPCErrorCode = collections.namedtuple('RPCErrorCode', ('value', 'message', 'description'))
 
@@ -48,15 +50,26 @@ def deserialize(i):
 
 
 class BaseRPCClientHandler(object):
-    @staticmethod
-    def marshal_request(name, params):
+    def __init__(self):
+        self._counter = 1
+        self._lock = threading.Lock()
+
+    @property
+    def current_id(self):
+        with self._lock:
+            value = self._counter
+            self._counter += 1
+            return value
+
+    def marshal_request(self, name, params):
         return serialize({
+            "json-rpc": "2.0",
+            "id": self.current_id,
             "method": name,
             "params": params
         })
 
-    @staticmethod
-    def unmarshal_response(raw_response):
+    def unmarshal_response(self, raw_response):
         try:
             response = deserialize(raw_response)
         except ValueError:
@@ -83,6 +96,17 @@ class BaseRPCClientHandler(object):
 class RPCMethod(object):
     def __init__(self, func):
         self.func = func
+
+    @property
+    def params(self):
+        if six.PY2:
+            return inspect.getargspec(self.func)[0]
+        else:
+            return inspect.signature(self.func).parameters.keys()
+
+    @property
+    def documentation(self):
+        return inspect.getdoc(self.func)
 
     def handle(self, raw_params):
         return self.func(

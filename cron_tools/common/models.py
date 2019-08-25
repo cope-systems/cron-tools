@@ -10,7 +10,7 @@ from cron_tools.common.time import from_any_time_to_utc_seconds, from_utc_second
 
 class AgentJob(object):
     def __init__(self, job_id, uuid, name, args, user, host, tags, start_time, end_time,
-                 created_time, last_updated_time):
+                 created_time, last_updated_time, last_updated_sequence_number):
         self.job_id = job_id
         self.uuid = uuid
         self.name = name
@@ -22,6 +22,7 @@ class AgentJob(object):
         self.end_time = end_time
         self.created_time = created_time
         self.last_updated_time = last_updated_time
+        self.last_updated_sequence_number = last_updated_sequence_number
 
     def to_row(self):
         return {
@@ -35,7 +36,8 @@ class AgentJob(object):
             'job_start_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.start_time),
             'job_end_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.end_time),
             'created_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.created_time),
-            'last_updated_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.last_updated_time)
+            'last_updated_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.last_updated_time),
+            'last_updated_sequence_number': self.last_updated_sequence_number
         }
 
     @classmethod
@@ -51,7 +53,8 @@ class AgentJob(object):
             start_time=from_utc_seconds_to_datetime(row['job_start_time_utc_epoch_seconds']),
             end_time=from_utc_seconds_to_datetime(row['job_end_time_utc_epoch_seconds']),
             created_time=from_utc_seconds_to_datetime(row['created_time_utc_epoch_seconds']),
-            last_updated_time=from_utc_seconds_to_datetime(row['last_updated_time_utc_epoch_seconds'])
+            last_updated_time=from_utc_seconds_to_datetime(row['last_updated_time_utc_epoch_seconds']),
+            last_updated_sequence_number=row['last_updated_sequence_number']
         )
 
     def serialize(self):
@@ -66,7 +69,8 @@ class AgentJob(object):
             'job_start_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.start_time),
             'job_end_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.end_time),
             'created_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.created_time),
-            'last_updated_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.last_updated_time)
+            'last_updated_time_utc_epoch_seconds': from_any_time_to_utc_seconds(self.last_updated_time),
+            'last_updated_sequence_number': self.last_updated_sequence_number
         }
 
     @classmethod
@@ -84,7 +88,8 @@ class AgentJob(object):
             start_time=from_any_time_to_datetime(raw_agent_job['job_start_time_utc_epoch_seconds']),
             end_time=from_any_time_to_datetime(raw_agent_job['job_end_time_utc_epoch_seconds']),
             created_time=from_any_time_to_datetime(raw_agent_job['created_time_utc_epoch_seconds']),
-            last_updated_time=from_any_time_to_datetime(raw_agent_job['last_updated_time_utc_epoch_seconds'])
+            last_updated_time=from_any_time_to_datetime(raw_agent_job['last_updated_time_utc_epoch_seconds']),
+            last_updated_sequence_number=raw_agent_job['last_updated_sequence_number']
         )
 
 class AggregatorJob(object):

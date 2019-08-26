@@ -51,7 +51,7 @@ class CommonRPCCodeUnitTestCases(unittest.TestCase):
 
         try:
             socket_path = os.path.join(tempdir, "test.socket")
-            server = AgentUnixStreamRPCServer(socket_path, ":memory:")
+            server = AgentUnixStreamRPCServer(socket_path)
             server.register_function("cat", cat)
             server.register_function("add", add)
             server.register_function("faulty", faulty)

@@ -1,27 +1,43 @@
 import json
+import logging
+from logging import config as logging_config_module
 
-from cron_tools.common.config import ConfigurationException
+from cron_tools.common.config import ConfigurationException, JSONSourcedConfiguration
 
 
-class AgentConfiguration(object):
+class AgentConfiguration(JSONSourcedConfiguration):
     DEFAULT_LISTEN_SOCKET_PATH = "/var/run/cron-tools/agent.sock"
 
-    def __init__(self, sqlite_database_url, listen_socket_path=DEFAULT_LISTEN_SOCKET_PATH):
-        self.sqlite_database_url = sqlite_database_url
-        self.listen_socket_path = listen_socket_path
+    REQUIRED_PARAMETERS = [
+        'sqlite_database_path'
+    ]
 
-    @classmethod
-    def load_and_validate_raw(cls, raw_config):
-        if not isinstance(raw_config, dict):
-            raise ConfigurationException("Configuration must be a dict/object type!")
-        if "database_url" not in raw_config:
-            raise ConfigurationException("No SQLite3 database_url specified in agent configuration!")
-        return cls(
-            raw_config["database_url"],
-            listen_socket_path=raw_config.get("listen_socket_path", cls.DEFAULT_LISTEN_SOCKET_PATH)
-        )
+    OPTIONAL_PARAMETERS = {
+        'listen_socket_path': DEFAULT_LISTEN_SOCKET_PATH,
+        'logging_config': {
+            'version': 1,
+            'formatters': {
+                'detailed': {
+                    'fmt': '%(asctime)s %(levelname)-3s [%(module)s:%(lineno)d] %(message)s'
+                }
+            },
+            'handlers': {
+                'stderr': {
+                    'class': 'logging.StreamHandler',
+                    'formatter': 'detailed',
+                    'level': 'WARNING',
+                    'stream': 'ext://sys.stderr'
+                }
+            },
+            'root': {
+                'handler': 'stderr',
+                'level': 'WARNING'
+            }
+        }
+    }
 
-    @classmethod
-    def from_file(cls, filename):
-        with open(filename, 'r') as f:
-            return cls.load_and_validate_raw(json.load(f))
+    def __init__(self, logging_config=OPTIONAL_PARAMETERS['logging_config'], **kwargs):
+        super(AgentConfiguration, self).__init__(**kwargs)
+        self.logging_config = logging_config
+        logging_config_module.dictConfig(logging_config)
+

@@ -10,6 +10,6 @@ def build_app():
     return app
 
 
-def main():
-    args = aggregator_argument_parser.parse_args()
+def main(args=None, config=None):
+    args = args or aggregator_argument_parser.parse_args()
     app = build_app()

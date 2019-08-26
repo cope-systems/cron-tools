@@ -3,6 +3,7 @@ import struct
 from six.moves import socketserver
 
 from cron_tools.common.rpc import BaseRPCServerHandler
+from cron_tools.agent.queries import immediate_transaction_manager, add_job, update_job_end_time_and_status
 
 MAGIC_BYTE = b'\x5A'
 
@@ -40,9 +41,8 @@ class AgentRPCHandler(socketserver.BaseRequestHandler):
 
 
 class AgentUnixStreamRPCServer(socketserver.ThreadingUnixStreamServer):
-    def __init__(self, socket_addr, database_addr, bind_and_activate=True):
+    def __init__(self, socket_addr, bind_and_activate=True):
         self.handler = BaseRPCServerHandler()
-        self.database_addr = database_addr
         socketserver.ThreadingUnixStreamServer.__init__(
             self,
             socket_addr,
@@ -52,3 +52,37 @@ class AgentUnixStreamRPCServer(socketserver.ThreadingUnixStreamServer):
 
     def register_function(self, name, function):
         return self.handler.register_function(name, function)
+
+
+def attach_agent_functions(agent_server, connection_pool):
+    def ping():
+        return {
+            "response": "pong"
+        }
+
+    agent_server.register_function("ping", ping)
+
+    def add_new_job(job_record):
+        connection = connection_pool.get()
+        with immediate_transaction_manager(connection) as t:
+            record = add_job(t, job_record)
+        return {
+            'record': record.serialize()
+        }
+
+    agent_server.register_function("add_new_job", add_new_job)
+
+    def update_job_end_time_and_status_code(job_uuid, job_end_time, job_status_code):
+        connection = connection_pool.get()
+        with immediate_transaction_manager(connection) as t:
+            updated_info = update_job_end_time_and_status(t, job_uuid, job_end_time, job_status_code)
+        return {
+            'updated_info': updated_info
+        }
+
+    agent_server.register_function("update_job_end_time_and_status_code", update_job_end_time_and_status_code)
+
+    def send_job_alert(job_uuid, alert_message):
+        pass  # TODO: Implement this.
+
+    agent_server.register_function("send_job_alert", send_job_alert)

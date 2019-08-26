@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS job(
     job_user TEXT NOT NULL,
     job_host TEXT NOT NULL,
     job_tags_json TEXT NOT NULL,
+    job_status_code INTEGER,
     job_start_time_utc_epoch_seconds REAL NOT NULL,
     job_end_time_utc_epoch_seconds REAL,
     created_time_utc_epoch_seconds REAL NOT NULL,

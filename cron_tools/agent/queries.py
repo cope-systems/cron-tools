@@ -3,6 +3,7 @@ from sqlite3 import Row
 from contextlib import contextmanager
 import os
 import json
+import threading
 from functools import wraps
 
 from cron_tools.common.models import AgentJob
@@ -19,6 +20,35 @@ def create_connection(*args, **kwargs):
     conn.row_factory = Row
     conn.isolation_level = None
     return conn
+
+
+class SimpleConnectionPool(object):
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        self.pool = {}
+
+    @property
+    def thread_ident(self):
+        return threading.current_thread().ident
+
+    def get(self):
+        if self.thread_ident in self.pool:
+            return self.pool[self.thread_ident]
+        else:
+            self.pool[self.thread_ident] = conn = create_connection(*self.args, **self.kwargs)
+            return conn
+
+    def close(self):
+        ident = self.thread_ident
+        if ident in self.pool:
+            self.pool[ident].close()
+            del self.pool[ident]
+
+    def close_all(self):
+        for conn in self.pool.values():
+            conn.close()
+        self.pool = {}
 
 
 @contextmanager
@@ -145,12 +175,12 @@ def add_job(transaction, new_job_record, sequence_counter_name='REPLICATION_COUN
         c.execute(
             "INSERT INTO job("
             "  job_uuid, job_name, job_args_json, job_user, job_host,"
-            "  job_tags_json, job_start_time_utc_epoch_seconds, "
+            "  job_tags_json, job_status_code, job_start_time_utc_epoch_seconds, "
             "  job_end_time_utc_epoch_seconds, created_time_utc_epoch_seconds,"
             "  last_updated_time_utc_epoch_seconds, last_updated_sequence_number"
             ") VALUES ("
             "  :job_uuid, :job_name, :job_args_json, :job_user, :job_host,"
-            "  :job_tags_json, :job_start_time_utc_epoch_seconds, "
+            "  :job_tags_json, :job_status_code, :job_start_time_utc_epoch_seconds, "
             "  :job_end_time_utc_epoch_seconds, :created_time_utc_epoch_seconds,"
             "  :last_updated_time_utc_epoch_seconds, :last_updated_sequence_number"
             ")",
@@ -174,6 +204,7 @@ def update_job(transaction, job_record, sequence_counter_name='REPLICATION_COUNT
                 job_user = :job_user,
                 job_host = :job_host,
                 job_tags_json = :job_tags,
+                job_status_code = :job_status_code,
                 job_start_time_utc_epoch_seconds = :job_start_time_utc_epoch_seconds,
                 job_end_time_utc_epoch_seconds = :job_end_time_utc_epoch_seconds,
                 created_time_utc_epoch_seconds = :created_time_utc_epoch_seconds,
@@ -186,23 +217,32 @@ def update_job(transaction, job_record, sequence_counter_name='REPLICATION_COUNT
     return job_record
 
 
-def update_job_end_time(transaction, job_uuid, job_end_time, sequence_counter_name='REPLICATION_COUNTER'):
+def update_job_end_time_and_status(transaction, job_uuid, job_end_time, job_status_code,
+                                   sequence_counter_name='REPLICATION_COUNTER'):
     last_updated_sequence_number = get_and_increment_counter(transaction, sequence_counter_name)
     last_updated_time = local_now()
     with cursor_manager(transaction) as c:
         c.execute(
             """
             UPDATE job
-            SET job_end_time_utc_epoch_seconds=?,
+            SET job_status_code=?,
+                job_end_time_utc_epoch_seconds=?,
                 last_updated_time_utc_epoch_seconds=?,
                 last_updated_sequence_number=?
             WHERE job_uuid=?
             """,
             (
+                job_status_code,
                 from_any_time_to_utc_seconds(job_end_time),
                 from_any_time_to_utc_seconds(last_updated_time),
                 last_updated_sequence_number,
                 job_uuid
             )
         )
-    return job_end_time, last_updated_time, last_updated_sequence_number
+    return {
+        'job_status_code': job_status_code,
+        'job_end_time_utc_epoch_seconds': from_any_time_to_utc_seconds(job_end_time),
+        'job_updated_time_utc_epoch_seconds': from_any_time_to_utc_seconds(last_updated_time),
+        'job_updated_sequence_number': last_updated_sequence_number,
+        'job_uuid': job_uuid
+    }

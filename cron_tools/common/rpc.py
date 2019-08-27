@@ -6,6 +6,7 @@ import inspect
 import collections
 import six
 import threading
+import traceback
 
 RPCErrorCode = collections.namedtuple('RPCErrorCode', ('value', 'message', 'description'))
 
@@ -163,7 +164,7 @@ class BaseRPCServerHandler(object):
             return serialize({
                 "json-rpc": "2.0",
                 "error": {
-                    "message": repr(e),
+                    "message": repr(e) + "\n" + traceback.format_exc(),
                     "code": RPCErrorCodes.INTERNAL_ERROR.value
                 }
             })

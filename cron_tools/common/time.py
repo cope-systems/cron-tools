@@ -11,8 +11,10 @@ UNIX_EPOCH = datetime.datetime(year=1970, month=1, day=1, hour=0, minute=0, tzin
 NUMERIC_TYPES = tuple(list(integer_types) + [float])
 
 
-def from_any_time_to_utc_seconds(t, offset_naive_ok=True):
-    if isinstance(t, datetime.datetime):
+def from_any_time_to_utc_seconds(t, offset_naive_ok=True, null_ok=True):
+    if null_ok and t is None:
+        return t
+    elif isinstance(t, datetime.datetime):
         if offset_naive_ok and t.tzinfo is None:
             t = t.replace(tzinfo=tzlocal())
         return (t - UNIX_EPOCH).total_seconds()
@@ -25,16 +27,20 @@ def from_any_time_to_utc_seconds(t, offset_naive_ok=True):
         return (parsed_dt - UNIX_EPOCH).total_seconds()
 
 
-def from_utc_seconds_to_datetime(t):
-    if not isinstance(t, NUMERIC_TYPES):
+def from_utc_seconds_to_datetime(t, null_ok=True):
+    if null_ok and t is None:
+        return t
+    elif not isinstance(t, NUMERIC_TYPES):
         raise ValueError("Expected incoming time to be numeric, was instead {0}({1})".format(type(t), t))
     else:
         dt = UNIX_EPOCH + datetime.timedelta(seconds=t)
         return dt
 
 
-def from_any_time_to_datetime(t):
-    if isinstance(t, NUMERIC_TYPES):
+def from_any_time_to_datetime(t, null_ok=True):
+    if null_ok and t is None:
+        return t
+    elif isinstance(t, NUMERIC_TYPES):
         return from_utc_seconds_to_datetime(t)
     elif isinstance(t, datetime.datetime):
         return t

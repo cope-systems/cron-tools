@@ -3,7 +3,9 @@ import struct
 from six.moves import socketserver
 
 from cron_tools.common.rpc import BaseRPCServerHandler
-from cron_tools.agent.queries import immediate_transaction_manager, add_job, update_job_end_time_and_status
+from cron_tools.common.models import AgentJob
+from cron_tools.agent.queries import immediate_transaction_manager, add_job, update_job_end_time_and_status, \
+    get_all_jobs
 
 MAGIC_BYTE = b'\x5A'
 
@@ -62,7 +64,8 @@ def attach_agent_functions(agent_server, connection_pool):
 
     agent_server.register_function("ping", ping)
 
-    def add_new_job(job_record):
+    def add_new_job(raw_job_record):
+        job_record = AgentJob.deserialize(raw_job_record)
         connection = connection_pool.get()
         with immediate_transaction_manager(connection) as t:
             record = add_job(t, job_record)
@@ -81,6 +84,15 @@ def attach_agent_functions(agent_server, connection_pool):
         }
 
     agent_server.register_function("update_job_end_time_and_status_code", update_job_end_time_and_status_code)
+
+    def get_recent_jobs(limit, offset):
+        connection = connection_pool.get()
+        jobs = get_all_jobs(connection, limit=limit, offset=offset, order_by="job_start_time_utc_epoch_seconds DESC")
+        return {
+            'recent_jobs': [j.serialize() for j in jobs]
+        }
+
+    agent_server.register_function("get_recent_jobs", get_recent_jobs)
 
     def send_job_alert(job_uuid, alert_message):
         pass  # TODO: Implement this.

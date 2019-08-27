@@ -13,10 +13,10 @@ import logging
 from threading import Lock as NullLock
 
 
-from cron_tools.wrapper.rpc_client import RPCClient
 from cron_tools.wrapper.config import WrapperConfiguration
 from cron_tools.common.models import AgentJob
 from cron_tools.common.flock import FlockLock
+from cron_tools.common.rpc_client import RPCClient
 
 wrapper_argument_parser = argparse.ArgumentParser()
 wrapper_argument_parser.add_argument(
@@ -68,7 +68,12 @@ def main(args=None, config=None):
     else:
         config = WrapperConfiguration.default()
 
-    rpc_client = RPCClient(config.agent_socket_path)
+    try:
+        rpc_client = RPCClient(config.agent_socket_path)
+        rpc_client.connect()
+    except Exception:
+        wrapper_logger.warning("Unable to connect to agent!")
+        rpc_client = None
     read_fds = []
     sigchld_fd = signalfd.signalfd(-1, [signal.SIGCLD, signal.SIGCHLD], signalfd.SFD_CLOEXEC)
     signalfd.sigprocmask(signalfd.SIG_BLOCK, [signal.SIGCLD, signal.SIGCHLD])
@@ -117,9 +122,11 @@ def main(args=None, config=None):
             last_updated_time=None,
             last_updated_sequence_number=None
         )
-        rpc_client.handle_rpc_call(
-            "add_job", {'job_record': job.serialize()}
-        )
+
+        if rpc_client:
+            rpc_client.handle_rpc_call(
+                "add_new_job", {'raw_job_record': job.serialize()}
+            )
 
         status_code = process.poll()
         current_read = True
@@ -140,12 +147,18 @@ def main(args=None, config=None):
                         wrapper_logger.info("CAPTURED (STDERR): {0}".format(line))
             status_code = process.poll()
 
-        rpc_client.handle_rpc_call(
-            "update_job_end_time_and_status_code",
-            {
-                'job_uuid': job.uuid,
-                'job_end_time': end_time,
-                'job_status_code': status_code
-            }
-        )
+        if rpc_client:
+            rpc_client.handle_rpc_call(
+                "update_job_end_time_and_status_code",
+                {
+                    'job_uuid': job.uuid,
+                    'job_end_time': end_time,
+                    'job_status_code': status_code
+                }
+            )
+        try:
+            if rpc_client:
+                rpc_client.disconnect()
+        except BaseException:
+            wrapper_logger.warning("Unable to close agent RPC connection!")
         sys.exit(status_code)

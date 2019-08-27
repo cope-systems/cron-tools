@@ -5,7 +5,7 @@ from threading import Thread, Event
 
 from cron_tools.agent.config import AgentConfiguration
 from cron_tools.agent.rpc_server import AgentUnixStreamRPCServer, attach_agent_functions
-from cron_tools.agent.queries import SimpleConnectionPool
+from cron_tools.agent.queries import SimpleConnectionPool, write_schema
 
 agent_argument_parser = argparse.ArgumentParser()
 agent_argument_parser.add_argument("config_file", type=str, help="JSON Configuration file for the agent.")
@@ -15,8 +15,11 @@ def build_app(args=None, config=None):
     args = args or agent_argument_parser.parse_args()
     config = config or AgentConfiguration.from_file(args.config_file)
     server = AgentUnixStreamRPCServer(config.listen_socket_path)
+    pool = SimpleConnectionPool(config.sqlite_database_path)
+    conn = write_schema(pool.get())
+    pool.close()
     attach_agent_functions(
-        server, SimpleConnectionPool(config.sqlite_database_path)
+        server, pool
     )
     server_thread = Thread(target=server.serve_forever)
     shutdown_event = Event()

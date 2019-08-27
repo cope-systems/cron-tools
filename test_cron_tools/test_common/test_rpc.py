@@ -5,10 +5,9 @@ import threading
 import tempfile
 import shutil
 import os
-import asyncore
 
 from cron_tools.common.rpc import BaseRPCClientHandler, BaseRPCServerHandler, RPCException
-from cron_tools.wrapper.rpc_client import RPCClient
+from cron_tools.common.rpc_client import RPCClient
 from cron_tools.agent.rpc_server import AgentUnixStreamRPCServer
 
 

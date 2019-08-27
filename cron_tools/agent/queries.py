@@ -150,7 +150,7 @@ def get_all_key_value_pairs(connection):
         }
 
 
-def get_all_jobs(connection, limit=None, offset=None):
+def get_all_jobs(connection, limit=None, offset=None, order_by=None):
     query = "SELECT * FROM job"
     params = []
     if limit is not None:
@@ -159,6 +159,8 @@ def get_all_jobs(connection, limit=None, offset=None):
     if offset is not None:
         query += " OFFSET ?"
         params.append(offset)
+    if order_by is not None:
+        query += " ORDER BY {0} ".format(order_by)
     with cursor_manager(connection) as c:
         c.execute(
             query,

@@ -14,12 +14,12 @@ CREATE TABLE IF NOT EXISTS job(
     last_updated_sequence_number INTEGER NOT NULL
 );
 
-CREATE TABLE counter(
+CREATE TABLE IF NOT EXISTS counter(
     counter_name TEXT PRIMARY KEY,
     counter_value INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE TABLE key_value_store(
+CREATE TABLE IF NOT EXISTS key_value_store(
     key_name TEXT PRIMARY KEY,
     value_json TEXT NOT NULL
 );

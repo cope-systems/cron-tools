@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import os
 import json
 import threading
+import datetime
 from functools import wraps
 
 from cron_tools.common.models import AgentJob
@@ -86,6 +87,10 @@ def write_schema(connection):
     connection.executescript(AGENT_SCHEMA)
 
 
+def cleanup_db(connection):
+    connection.execute("VACUUM")
+
+
 def get_and_increment_counter(transaction, counter_name, default_value=0):
     with cursor_manager(transaction) as c:
         c.execute("SELECT counter_value FROM counter WHERE counter_name=?", (counter_name,))
@@ -152,6 +157,25 @@ def get_all_key_value_pairs(connection):
 
 def get_all_jobs(connection, limit=None, offset=None, order_by=None):
     query = "SELECT * FROM job"
+    params = []
+    if limit is not None:
+        query += " LIMIT ?"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET ?"
+        params.append(offset)
+    if order_by is not None:
+        query += " ORDER BY {0} ".format(order_by)
+    with cursor_manager(connection) as c:
+        c.execute(
+            query,
+            params
+        )
+        return [AgentJob.from_row(r) for r in c.fetchall()]
+
+
+def get_all_active_jobs(connection, limit=None, offset=None, order_by=None):
+    query = "SELECT * FROM job WHERE job_end_time_utc_epoch_seconds IS NULL "
     params = []
     if limit is not None:
         query += " LIMIT ?"
@@ -248,3 +272,19 @@ def update_job_end_time_and_status(transaction, job_uuid, job_end_time, job_stat
         'job_updated_sequence_number': last_updated_sequence_number,
         'job_uuid': job_uuid
     }
+
+
+def remove_old_jobs(transaction, minimum_age_hours, maximum_sequence_number=None):
+    min_utc_seconds = from_any_time_to_utc_seconds(local_now() - datetime.timedelta(hours=minimum_age_hours))
+    query = "DELETE FROM job " \
+            "WHERE job_end_time_utc_epoch_seconds IS NOT NULL "\
+            "AND job_end_time_utc_epoch_seconds < ? "
+    params = [min_utc_seconds]
+    if maximum_sequence_number is not None:
+        query += "AND last_updated_sequence_number <= ?"
+        params.append(maximum_sequence_number)
+    with cursor_manager(transaction) as c:
+        c.execute(
+            query,
+            params
+        )

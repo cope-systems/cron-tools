@@ -1,15 +1,17 @@
 from logging import config as logging_config_module
 
-from cron_tools.common.config import ConfigurationException, JSONSourcedConfiguration
+from cron_tools.common.config import JSONSourcedConfiguration
 
 
-class AgentConfiguration(JSONSourcedConfiguration):
-    DEFAULT_LISTEN_SOCKET_PATH = "/var/run/cron-tools/agent.sock"
-    DEFAULT_DATABASE_PATH = '/var/lib/cron-tools/agent.db'
+class AggregatorConfiguration(JSONSourcedConfiguration):
+    DEFAULT_DATABASE_URL = 'postgres://localhost'
+    DEFAULT_BIND_ADDRESS = '127.0.0.1'
+    DEFAULT_BIND_PORT = 8081
 
     OPTIONAL_PARAMETERS = {
-        'sqlite_database_path': DEFAULT_DATABASE_PATH,
-        'listen_socket_path': DEFAULT_LISTEN_SOCKET_PATH,
+        'bind_address': DEFAULT_BIND_ADDRESS,
+        'bind_port': DEFAULT_BIND_PORT,
+        'postgres_database_url': DEFAULT_DATABASE_URL,
         'logging_config': {
             'version': 1,
             'formatters': {
@@ -29,21 +31,11 @@ class AgentConfiguration(JSONSourcedConfiguration):
                 'handler': 'stderr',
                 'level': 'WARNING'
             }
-        },
-        'clean_up_policy': {
-            'enabled': True,
-            'check_interval_minutes': 15,
-            'replicated': {
-                'min_age_hours': 24*3
-            },
-            'unreplicated': {
-                'min_age_hours': 24*7
-            }
         }
     }
 
     def __init__(self, logging_config=OPTIONAL_PARAMETERS['logging_config'], **kwargs):
-        super(AgentConfiguration, self).__init__(**kwargs)
+        super(AggregatorConfiguration, self).__init__(**kwargs)
         self.logging_config = logging_config
         logging_config_module.dictConfig(logging_config)
 

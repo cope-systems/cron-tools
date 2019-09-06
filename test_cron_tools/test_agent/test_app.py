@@ -21,7 +21,7 @@ class CronToolsAgentApplicationUnitTest(unittest.TestCase):
             "listen_socket_path": socket_path
         }
         config = AgentConfiguration.load(raw_config)
-        args = agent_argument_parser.parse_args(args=["no-such-config-file"])
+        args = agent_argument_parser.parse_args(args=[])
 
         try:
             run, shutdown = build_app(args=args, config=config)

@@ -23,7 +23,7 @@ class CronToolsWrapperIntegrationTest(unittest.TestCase):
             "listen_socket_path": socket_path
         }
         agent_config = AgentConfiguration.load(raw_config)
-        agent_args = agent_argument_parser.parse_args(args=["no-such-config-file"])
+        agent_args = agent_argument_parser.parse_args(args=[])
         shutdown = None
         server_thread = None
         client = None

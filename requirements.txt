@@ -5,3 +5,4 @@ bottle-swagger-2
 requests
 psycopg2-binary
 python-dateutil
+yoyo-migrations

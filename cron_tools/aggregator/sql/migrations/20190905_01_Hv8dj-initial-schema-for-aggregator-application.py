@@ -1,3 +1,14 @@
+"""
+Initial schema for aggregator application.
+"""
+
+from yoyo import step
+
+__depends__ = {}
+
+steps = [
+    step(
+        """
 CREATE TABLE IF NOT EXISTS job(
   job_id BIGSERIAL,
   job_uuid UUID UNIQUE NOT NULL,
@@ -12,3 +23,6 @@ CREATE TABLE IF NOT EXISTS job(
   created_time TIMESTAMP WITH TIME ZONE,
   last_updated_time TIMESTAMP WITH TIME ZONE
 );
+        """
+    )
+]

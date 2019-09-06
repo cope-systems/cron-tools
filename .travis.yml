@@ -9,6 +9,12 @@ install:
   - pip install tox-travis
   - pip install coveralls
   - pip install -r requirements.txt
+addons:
+  postgresql: "10"
+env:
+  - TEST_POSTGRES_URL="postgres://postgres@127.0.0.1/cron_tools_aggregator_test"
+before_script:
+  - psql -c 'create database cron_tools_aggregator_test'
 script: tox
 after_success:
   - coveralls

@@ -1,9 +1,13 @@
 from psycopg2.extras import DictRow, DictCursor
 from psycopg2.pool import ThreadedConnectionPool
+from yoyo import read_migrations, get_backend
+
 import psycopg2
 from six import string_types
 from functools import wraps
 from contextlib import contextmanager
+
+from cron_tools.aggregator import MIGRATIONS_DIR, SQL_DIR
 
 
 class AlteredDictRow(DictRow):
@@ -67,3 +71,11 @@ def create_pg_connection_pool(*args, **kwargs):
 
     kwargs.update(cursor_factory=cursor_factory)
     return ThreadedConnectionPool(*args, **kwargs)
+
+
+def apply_migrations(database_url):
+    backend = get_backend(database_url)
+    migrations = read_migrations(MIGRATIONS_DIR)
+
+    with backend.lock(60):
+        backend.apply_migrations(backend.to_apply(migrations))
